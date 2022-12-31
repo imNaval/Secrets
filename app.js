@@ -7,7 +7,10 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 // const encypt = require("mongoose-encryption");
-const md5 = require("md5");
+// const md5 = require("md5");
+const bcrypt = require("bcrypt");
+
+const saltRounds = 7;
 
 const app = express();
 
@@ -43,16 +46,20 @@ app.route("/register")
     res.render("register");
   })
   .post(function(req, res){
-    const newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password)
-      })
-    newUser.save(function(err){
-      if(err){
-        console.log(err);
-      }else {
-        res.render("secrets")
-      }
+    //Technique 2 (auto-gen a salt and hash):
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        // Store hash in your password DB.
+        const newUser = new User({
+            email: req.body.username,
+            password: hash //md5(req.body.password)
+          })
+        newUser.save(function(err){
+          if(err){
+            console.log(err);
+          }else {
+            res.render("secrets")
+          }
+        });
     });
   });
 
@@ -63,18 +70,20 @@ app.route("/login")
   })
   .post(function(req, res){
     email = req.body.username;
-    password = md5(req.body.password);
+    password = req.body.password;
 
     User.findOne({email: email}, function(err, foundUser){
       if(err){
         console.log(err);
       }else {
         if(foundUser){
-          if (foundUser.password === password) {
-            res.render("secrets");
-          }else {
-            res.send("password not match")
-          }
+          bcrypt.compare(password, foundUser.password, function(err, result) {
+            if(result === true){
+              res.render("secrets")
+            }else {
+              res.send("password not match");
+            }
+          });
         }else {
           res.send("user not found");
         }
