@@ -4,6 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const encypt = require("mongoose-encryption");
 
 const app = express();
 
@@ -17,10 +18,15 @@ mongoose.set('strictQuery', false);
 mongoose.connect(url);
 
 //schema
-userSchema = {
+userSchema = new mongoose.Schema({
   email: String,
   password: String
-}
+});
+
+//encryption
+const secret = "Thisismysecretstringforstoringpassword";
+userSchema.plugin(encypt, {secret: secret, encryptedFields: ['password']});
+
 const User = mongoose.model("User", userSchema);
 
 
